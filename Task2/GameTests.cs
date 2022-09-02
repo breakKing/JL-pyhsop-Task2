@@ -9,7 +9,7 @@ public class GameTests
 
     public GameTests()
     {
-        _rand = new Random(420);
+        _rand = new Random(1234);
     }
     
     [Theory]
@@ -79,6 +79,27 @@ public class GameTests
         // Assert
         score.Should().Be(stamps.FirstOrDefault(s => s.offset == offset).score);
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(50)]
+    [InlineData(1000)]
+    [InlineData(12500)]
+    [InlineData(27632)]
+    public void GetScore_ShouldReturnCorrectScore_WhenOffsetIsCorrectButNotPresentedInGameStampsArray(int offset)
+    {
+        // Arrange
+        var stamps = TestDataGenerator.GenerateStampsWithoutDefinedOffsets(_rand, offsets: offset);
+        var game = new Game(stamps);
+
+        // Act
+        var score = game.getScore(offset);
+
+        // Assert
+        score.Should().Be(
+            stamps.Where(s => s.offset < offset)
+                .Last().score);
+    }
 }
 
 public class TestDataGenerator
@@ -143,6 +164,60 @@ public class TestDataGenerator
             {
                 gameStamps[i].offset = definedOffsets[definedOffsetsCurrentIndex];
                 definedOffsetsCurrentIndex++;
+            }
+        }
+
+        return gameStamps;
+    }
+
+    public static GameStamp[] GenerateStampsWithoutDefinedOffsets(Random rand,
+        int count = 50000,
+        int maxOffsetStep = 3,
+        double scoreChangeProbability = 0.0001,
+        double homeScoreProbability = 0.45,
+        params int[] offsets)
+    {
+        if (count <= 0)
+        {
+            return new GameStamp[0];
+        }
+
+        var excludedOffsets = offsets.Where(off => off > 0)
+            .OrderBy(off => off)
+            .ToArray();
+
+        var gameStamps = new GameStamp[count];
+        gameStamps[0] = new GameStamp(0, 0, 0);
+
+        var excludedOffsetsCurrentIndex = 0;
+
+        for (int i = 1; i < count; i++)
+        {
+            gameStamps[i] = GenerateGameStamp(rand,
+                gameStamps[i - 1],
+                maxOffsetStep,
+                scoreChangeProbability,
+                homeScoreProbability);
+
+            if (excludedOffsetsCurrentIndex < excludedOffsets.Length)
+            {
+                if (excludedOffsets[excludedOffsetsCurrentIndex] < gameStamps[i].offset)
+                {
+                    excludedOffsetsCurrentIndex++;
+                }
+
+                else if (excludedOffsets[excludedOffsetsCurrentIndex] == gameStamps[i].offset)
+                {
+                    if (gameStamps[i - 1].offset == gameStamps[i].offset - 1)
+                    {
+                        gameStamps[i].offset++;
+                    }
+                    else
+                    {
+                        gameStamps[i].offset--;
+                    }
+                    excludedOffsetsCurrentIndex++;
+                }
             }
         }
 
