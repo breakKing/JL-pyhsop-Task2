@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
 using FluentAssertions;
 using Task1;
 
@@ -48,6 +46,19 @@ public class GameTests
 
         // Assert
         score.Should().Be(stamps.Last().score);
+    }
+
+    [Fact]
+    public void GetScore_ShouldReturnZeroZeroScore_WhenGameStampsArrayIsEmpty()
+    {
+        // Arrange
+        var game = new Game();
+
+        // Act
+        var score = game.getScore(_rand.Next(1, 50001));
+
+        // Assert
+        score.Should().Be(new Score(0, 0));
     }
 }
 
