@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using FluentAssertions;
 using Task1;
 
@@ -13,20 +15,39 @@ public class GameTests
     }
     
     [Theory]
+    [InlineData(0)]
     [InlineData(-1)]
     [InlineData(-50)]
     [InlineData(-1000)]
-    public void GetScore_ShouldReturnZeroZeroScore_WhenOffsetIsNegative(int negativeOffset)
+    public void GetScore_ShouldReturnZeroZeroScore_WhenOffsetIsNotPositive(int negativeOffset)
     {
         // Arrange
         var stamps = TestDataGenerator.GenerateRandomizedStamps(_rand);
-        Game game = new Game(stamps);
+        var game = new Game(stamps);
 
         // Act
-        Score score = game.getScore(negativeOffset);
+        var score = game.getScore(negativeOffset);
 
         // Assert
         score.Should().Be(new Score(0, 0));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(50)]
+    [InlineData(1000)]
+    public void GetScore_ShouldReturnFinalScore_WhenOffsetIsEqualOrGreaterThanTheLastOne(int offsetExcess)
+    {
+        // Arrange
+        var stamps = TestDataGenerator.GenerateRandomizedStamps(_rand);
+        var game = new Game(stamps);
+
+        // Act
+        var score = game.getScore(stamps.Last().offset - 1 + offsetExcess);
+
+        // Assert
+        score.Should().Be(stamps.Last().score);
     }
 }
 
