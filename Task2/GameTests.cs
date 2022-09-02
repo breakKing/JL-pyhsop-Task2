@@ -11,7 +11,7 @@ public class GameTests
     {
         _rand = new Random(1234);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
@@ -115,8 +115,7 @@ public class TestDataGenerator
             return new GameStamp[0];
         }
 
-        var gameStamps = new GameStamp[count];
-        gameStamps[0] = new GameStamp(0, 0, 0);
+        var gameStamps = InitializeGameStamps(count);
 
         for (int i = 1; i < count; i++)
         {
@@ -142,14 +141,10 @@ public class TestDataGenerator
             return new GameStamp[0];
         }
 
-        var definedOffsets = offsets.Where(off => off >= 0)
-            .OrderBy(off => off)
-            .ToArray();
+        var gameStamps = InitializeGameStamps(count);
 
-        var gameStamps = new GameStamp[count];
-        gameStamps[0] = new GameStamp(0, 0, 0);
-
-        var definedOffsetsCurrentIndex = (definedOffsets[0] == 0) ? 1 : 0;
+        var definedOffsets = GetCorrectOffsets(offsets);
+        var definedOffsetsCurrentIndex = 0;
 
         for (int i = 1; i < count; i++)
         {
@@ -159,15 +154,24 @@ public class TestDataGenerator
                 scoreChangeProbability,
                 homeScoreProbability);
 
-            if (definedOffsetsCurrentIndex < definedOffsets.Length
-                && definedOffsets[definedOffsetsCurrentIndex] <= gameStamps[i].offset)
-            {
-                gameStamps[i].offset = definedOffsets[definedOffsetsCurrentIndex];
-                definedOffsetsCurrentIndex++;
-            }
+            CheckForInclusionOfDefinedOffset(ref definedOffsets,
+                ref definedOffsetsCurrentIndex,
+                ref gameStamps[i].offset);
         }
 
         return gameStamps;
+    }
+
+    private static void CheckForInclusionOfDefinedOffset(ref int[] definedOffsets,
+        ref int definedOffsetsCurrentIndex,
+        ref int currentOffset)
+    {
+        if (definedOffsetsCurrentIndex < definedOffsets.Length
+                && definedOffsets[definedOffsetsCurrentIndex] <= currentOffset)
+        {
+            currentOffset = definedOffsets[definedOffsetsCurrentIndex];
+            definedOffsetsCurrentIndex++;
+        }
     }
 
     public static GameStamp[] GenerateStampsWithoutDefinedOffsets(Random rand,
@@ -182,14 +186,10 @@ public class TestDataGenerator
             return new GameStamp[0];
         }
 
-        var excludedOffsets = offsets.Where(off => off > 0)
-            .OrderBy(off => off)
-            .ToArray();
+        var gameStamps = InitializeGameStamps(count);
 
-        var gameStamps = new GameStamp[count];
-        gameStamps[0] = new GameStamp(0, 0, 0);
-
-        var excludedOffsetsCurrentIndex = 0;
+        var definedOffsets = GetCorrectOffsets(offsets);
+        var definedOffsetsCurrentIndex = 0;
 
         for (int i = 1; i < count; i++)
         {
@@ -199,27 +199,53 @@ public class TestDataGenerator
                 scoreChangeProbability,
                 homeScoreProbability);
 
-            if (excludedOffsetsCurrentIndex < excludedOffsets.Length)
-            {
-                if (excludedOffsets[excludedOffsetsCurrentIndex] < gameStamps[i].offset)
-                {
-                    excludedOffsetsCurrentIndex++;
-                }
+            CheckForExclusionOfDefinedOffset(ref definedOffsets,
+                ref definedOffsetsCurrentIndex,
+                ref gameStamps[i].offset,
+                ref gameStamps[i - 1].offset);
+        }
 
-                else if (excludedOffsets[excludedOffsetsCurrentIndex] == gameStamps[i].offset)
+        return gameStamps;
+    }
+
+    private static void CheckForExclusionOfDefinedOffset(ref int[] definedOffsets,
+        ref int definedOffsetsCurrentIndex,
+        ref int currentOffset,
+        ref int previousOffset)
+    {
+        if (definedOffsetsCurrentIndex < definedOffsets.Length)
+        {
+            if (definedOffsets[definedOffsetsCurrentIndex] < currentOffset)
+            {
+                definedOffsetsCurrentIndex++;
+            }
+
+            else if (definedOffsets[definedOffsetsCurrentIndex] == currentOffset)
+            {
+                if (previousOffset == currentOffset - 1)
                 {
-                    if (gameStamps[i - 1].offset == gameStamps[i].offset - 1)
-                    {
-                        gameStamps[i].offset++;
-                    }
-                    else
-                    {
-                        gameStamps[i].offset--;
-                    }
-                    excludedOffsetsCurrentIndex++;
+                    currentOffset++;
                 }
+                else
+                {
+                    currentOffset--;
+                }
+                definedOffsetsCurrentIndex++;
             }
         }
+    }
+
+    private static int[] GetCorrectOffsets(int[] offsets)
+    {
+        return offsets.Where(off => off > 0)
+            .OrderBy(off => off)
+            .ToArray();
+    }
+
+    private static GameStamp[] InitializeGameStamps(int count)
+    {
+        var gameStamps = new GameStamp[count];
+        gameStamps[0] = new GameStamp(0, 0, 0);
 
         return gameStamps;
     }
